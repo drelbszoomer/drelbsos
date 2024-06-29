@@ -1,7 +1,7 @@
-name: Build Bazzite
+name: Build DrelbsOS
 on:
   schedule:
-    - cron: '40 4 * * 2,5' # 4:40 utc tues thurs
+    - cron: '05 10 * * 3'  # 10:05am UTC wed
   pull_request:
     branches:
       - testing
@@ -30,7 +30,8 @@ on:
   merge_group:
   workflow_dispatch:
 env:
-  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+  PULL_IMAGE_REGISTRY: ghcr.io/ublue-os
+  PUSH_IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -49,9 +50,9 @@ jobs:
       fail-fast: false
       matrix:
         base_image_flavor: [main]
-        base_name: [bazzite, bazzite-deck, bazzite-nvidia]
-        base_image_name: [kinoite, silverblue]
-        target_image_flavor: [main, asus]
+        base_name: [drelbsos, drelbsos-nvidia]
+        base_image_name: [silverblue]
+        target_image_flavor: [main]
         fedora_version: [40]
         include:
           - fedora_version: 40
@@ -61,7 +62,7 @@ jobs:
     steps:
       - name: Define env.IMAGE_FLAVOR
         run: |
-          if [[ "${{ matrix.base_name }}" == "bazzite-nvidia" ]]; then
+          if [[ "${{ matrix.base_name }}" == "drelbsos-nvidia" ]]; then
               if [[ "${{ matrix.target_image_flavor }}" == "main" ]]; then
                   echo "IMAGE_FLAVOR=nvidia" >> $GITHUB_ENV
               else
@@ -78,18 +79,10 @@ jobs:
               DESKTOP="-gnome"
           fi
 
-          if [[ "${{ matrix.base_name }}" == "bazzite-deck" ]]; then
-              if [[ "${{ matrix.target_image_flavor }}" == "asus" ]]; then
-                  echo "IMAGE_NAME=${{ format('{0}{1}', 'bazzite-ally', '${DESKTOP}') }}" >> $GITHUB_ENV
-              else
-                  echo "IMAGE_NAME=${{ format('{0}{1}', 'bazzite-deck', '${DESKTOP}') }}" >> $GITHUB_ENV
-              fi
+          if [[ "${{ env.IMAGE_FLAVOR }}" == "main" ]]; then
+              echo "IMAGE_NAME=${{ format('{0}{1}', 'drelbsos', '${DESKTOP}') }}" >> $GITHUB_ENV
           else
-              if [[ "${{ env.IMAGE_FLAVOR }}" == "main" ]]; then
-                  echo "IMAGE_NAME=${{ format('{0}{1}', 'bazzite', '${DESKTOP}') }}" >> $GITHUB_ENV
-              else
-                  echo "IMAGE_NAME=${{ format('{0}{1}-{2}', 'bazzite', '${DESKTOP}', env.IMAGE_FLAVOR) }}" >> $GITHUB_ENV
-              fi
+              echo "IMAGE_NAME=${{ format('{0}{1}-{2}', 'drelbsos', '${DESKTOP}', env.IMAGE_FLAVOR) }}" >> $GITHUB_ENV
           fi
 
       - name: Verify main image
@@ -97,21 +90,21 @@ jobs:
         with:
           containers: ${{ matrix.base_image_name }}-${{ matrix.base_image_flavor }}:${{ matrix.fedora_version }}
           pubkey: https://raw.githubusercontent.com/ublue-os/${{ matrix.base_image_flavor }}/main/cosign.pub
-          registry: ${{ env.IMAGE_REGISTRY }}
+          registry: ${{ env.PULL_IMAGE_REGISTRY }}
 
       - name: Verify akmods image
         uses: EyeCantCU/cosign-action/verify@v0.2.2
         with:
           containers: akmods:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}
           pubkey: https://raw.githubusercontent.com/ublue-os/akmods/main/cosign.pub
-          registry: ${{ env.IMAGE_REGISTRY }}
+          registry: ${{ env.PULL_IMAGE_REGISTRY }}
 
       - name: Verify akmods-nvidia image
         uses: EyeCantCU/cosign-action/verify@v0.2.2
         with:
           containers: akmods-nvidia:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}
           pubkey: https://raw.githubusercontent.com/ublue-os/akmods/main/cosign.pub
-          registry: ${{ env.IMAGE_REGISTRY }}
+          registry: ${{ env.PULL_IMAGE_REGISTRY }}
 
       # Checkout push-to-registry action GitHub repository
       - name: Checkout Push to Registry action
@@ -189,9 +182,9 @@ jobs:
           command: |
             # pull the base images used for FROM in Containerfile so
             # we can retry on that unfortunately common failure case
-            podman pull ${{ env.IMAGE_REGISTRY }}/${{ matrix.base_image_name }}-${{ matrix.base_image_flavor }}:${{ matrix.fedora_version }}
-            podman pull ${{ env.IMAGE_REGISTRY }}/akmods:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}
-            podman pull ${{ env.IMAGE_REGISTRY }}/akmods-nvidia:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}
+            podman pull ${{ env.PULL_IMAGE_REGISTRY }}/${{ matrix.base_image_name }}-${{ matrix.base_image_flavor }}:${{ matrix.fedora_version }}
+            podman pull ${{ env.PULL_IMAGE_REGISTRY }}/akmods:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}
+            podman pull ${{ env.PULL_IMAGE_REGISTRY }}/akmods-nvidia:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}
 
       - name: Get source versions
         id: labels
@@ -201,7 +194,7 @@ jobs:
           attempt_delay: 15000
           command: |
             set -eo pipefail
-            skopeo inspect docker://${{ env.IMAGE_REGISTRY }}/${{ matrix.base_image_name }}-${{ matrix.base_image_flavor }}:${{ matrix.fedora_version }} > source.json
+            skopeo inspect docker://${{ env.PULL_IMAGE_REGISTRY }}/${{ matrix.base_image_name }}-${{ matrix.base_image_flavor }}:${{ matrix.fedora_version }} > source.json
             ver=$(jq -r '.Labels["org.opencontainers.image.version"]' source.json)
             if [ -z "$ver" ] || [ "null" = "$ver" ]; then
               echo "inspected image version must not be empty or null"
@@ -209,7 +202,7 @@ jobs:
             fi
             echo "SOURCE_IMAGE_VERSION=$ver" >> $GITHUB_ENV
 
-            skopeo inspect docker://${{ env.IMAGE_REGISTRY }}/akmods:${{ matrix.kernel_flavor }}-${{ matrix.fedora_version }} > akmods.json
+            skopeo inspect docker://${{ env.PULL_IMAGE_REGISTRY }}/akmods:${{ matrix.kernel_flavor }}-${{ matrix.fedora_version }} > akmods.json
             linux=$(jq -r '.Labels["ostree.linux"]' akmods.json)
             if [ -z "$linux" ] || [ "null" = "$linux" ]; then
               echo "inspected image linux version must not be empty or null"
@@ -226,11 +219,11 @@ jobs:
             ${{ env.IMAGE_NAME }}
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
-            org.opencontainers.image.description=Bazzite is an OCI image that serves as an alternative operating system for the Steam Deck, and a ready-to-game SteamOS-like for desktop computers, living room home theater PCs, and numerous other handheld PCs.
+            org.opencontainers.image.description=DrelbsOS is an OCI image that serves as an alternative operating system for desktop computers.
             org.opencontainers.image.version=${{ env.SOURCE_IMAGE_VERSION }}
             ostree.linux=${{ env.KERNEL_VERSION }}
-            io.artifacthub.package.readme-url=https://bazzite.gg/
-            io.artifacthub.package.logo-url=https://raw.githubusercontent.com/ublue-os/bazzite/main/repo_content/logo.png
+            # io.artifacthub.package.readme-url=https://bazzite.gg/
+            # io.artifacthub.package.logo-url=https://raw.githubusercontent.com/ublue-os/bazzite/main/repo_content/logo.png
 
       # Build image using Buildah action
       - name: Build Image
@@ -256,14 +249,14 @@ jobs:
           extra-args: |
             --target=${{ matrix.base_name }}
 
-      - name: Sign kernel
-        uses: ublue-os/kernel-signer@v0.2.3
-        with:
-          image: ${{ steps.build_image.outputs.image }}
-          default-tag: ${{ env.DEFAULT_TAG }}
-          privkey: ${{ secrets.AKMOD_PRIVKEY_20230518 }}
-          pubkey: /etc/pki/akmods/certs/akmods-ublue.der
-          tags: ${{ steps.build_image.outputs.tags }}
+      # - name: Sign kernel
+      #   uses: ublue-os/kernel-signer@v0.2.3
+      #   with:
+      #     image: ${{ steps.build_image.outputs.image }}
+      #     default-tag: ${{ env.DEFAULT_TAG }}
+      #     privkey: ${{ secrets.AKMOD_PRIVKEY_20230518 }}
+      #     pubkey: /etc/pki/akmods/certs/akmods-ublue.der
+      #     tags: ${{ steps.build_image.outputs.tags }}
 
       # Workaround bug where capital letters in your GitHub username make it impossible to push to GHCR.
       # https://github.com/macbre/push-to-ghcr/issues/12
@@ -271,7 +264,7 @@ jobs:
         id: registry_case
         uses: ASzc/change-string-case-action@v6
         with:
-          string: ${{ env.IMAGE_REGISTRY }}
+          string: ${{ env.PUSH_IMAGE_REGISTRY }}
 
       # Push the image to GHCR (Image Registry)
       - name: Push To GHCR
@@ -299,6 +292,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           containers: ${{ env.IMAGE_NAME }}
+          registry: ${{ steps.registry_case.outputs.lowercase }}
           registry-token: ${{ secrets.GITHUB_TOKEN }}
           signing-secret: ${{ secrets.SIGNING_SECRET }}
           tags: ${{ steps.push.outputs.outputs && fromJSON(steps.push.outputs.outputs).digest }}

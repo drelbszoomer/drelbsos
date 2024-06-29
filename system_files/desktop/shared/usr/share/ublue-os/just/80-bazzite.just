@@ -1,49 +1,5 @@
 # vim: set ft=make :
 
-# Restore the default Terminal
-_restore-original-terminal:
-    #!/usr/bin/bash
-    IMAGE_INFO="/usr/share/ublue-os/image-info.json"
-    BASE_IMAGE_NAME=$(jq -r '."base-image-name"' < $IMAGE_INFO)
-    mkdir -p $HOME/.local/share/applications
-    if [[ ${BASE_IMAGE_NAME} == 'silverblue' ]]; then
-        rm -f $HOME/.local/share/applications/org.gnome.Terminal.desktop
-        cp /usr/share/applications/org.gnome.Terminal.desktop $HOME/.local/share/applications/org.gnome.Terminal.desktop
-        sed -i '/NoDisplay=true/d' $HOME/.local/share/applications/org.gnome.Terminal.desktop
-    else
-        rm -f $HOME/.local/share/applications/org.kde.konsole.desktop
-        cp /usr/share/applications/org.kde.konsole.desktop $HOME/.local/share/applications/org.kde.konsole.desktop
-        sed -i '/NoDisplay=true/d' $HOME/.local/share/applications/org.kde.konsole.desktop
-        echo "Done. Change your default Terminal in System Settings to complete the swap."
-    fi
-
-# Install System Flatpaks (Support for Rebasing)
-_install-system-flatpaks:
-    #!/usr/bin/bash
-    IMAGE_INFO="/usr/share/ublue-os/image-info.json"
-    BASE_IMAGE_NAME=$(jq -r '."base-image-name"' < $IMAGE_INFO)
-    if [[ ${BASE_IMAGE_NAME} == 'silverblue' ]]; then
-        FLATPAKS="gnome_flatpaks/flatpaks"
-    else
-        FLATPAKS="kde_flatpaks/flatpaks"
-    fi
-    FLATPAK_LIST="$(curl https://raw.githubusercontent.com/ublue-os/bazzite/main/installer/${FLATPAKS} | tr '\n' ' ')"
-    flatpak --system -y install --or-update ${FLATPAK_LIST}
-
-# Install Bazzite's Steam Game Mode Startup & Suspend Videos
-install-gamemode-video:
-    mkdir -p $HOME/.local/share/Steam/config/uioverrides/movies
-    rm -f $HOME/.local/share/Steam/config/uioverrides/movies/deck_startup.webm
-    rm -f $HOME/.local/share/Steam/config/uioverrides/movies/deck-suspend-animation.webm
-    rm -f $HOME/.local/share/Steam/config/uioverrides/movies/deck-suspend-animation-from-throbber.webm
-    cp /usr/share/ublue-os/bazzite/bazzite.webm $HOME/.local/share/Steam/config/uioverrides/movies/deck_startup.webm
-    cp /usr/share/ublue-os/bazzite/bazzite-suspend.webm $HOME/.local/share/Steam/config/uioverrides/movies/deck-suspend-animation.webm
-    cp /usr/share/ublue-os/bazzite/bazzite-suspend.webm $HOME/.local/share/Steam/config/uioverrides/movies/deck-suspend-animation-from-throbber.webm
-
-# Force-enable AMD pstate
-_pstate-force-enable:
-    rpm-ostree kargs --append-if-missing=amd_pstate=active
-
 # Configure grub bootmenu visibility and fix duplicate entries
 configure-grub ACTION="":
     #!/usr/bin/bash
@@ -143,46 +99,4 @@ configure-watchdog ACTION="":
         WATCHDOG_KARGS="$WATCHDOG_KARGS --append-if-missing=modprobe.blacklist=sp5100_tco"
       fi
       rpm-ostree kargs $WATCHDOG_KARGS
-    fi
-
-# Install and configure Decky Loader (https://github.com/SteamDeckHomebrew/decky-loader) and plugins for alternative handhelds
-setup-decky ACTION="":
-    #!/usr/bin/bash
-    source /usr/lib/ujust/ujust.sh
-    DECKY_STATE="${b}${red}Not Installed${n}"
-    if [[ -d $HOME/homebrew/plugins ]]; then
-      DECKY_STATE="${b}${green}Installed${n}"
-    fi
-    OPTION={{ ACTION }}
-    if [ "$OPTION" == "help" ]; then
-      echo "Usage: ujust configure-watchdog <option>"
-      echo "  <option>: Specify the quick option to skip the prompt"
-      echo "  Use 'install' to select Install Decky"
-      exit 0
-    fi
-    if [[ "${OPTION,,}" =~ install ]]; then
-      export HOME=$(getent passwd ${SUDO_USER:-$USER} | cut -d: -f6)
-      if [ ! -L "/home/deck" ] && [ ! -e "/home/deck" ]  && [ "$HOME" != "/home/deck" ]; then
-        echo "Making a /home/deck symlink to fix plugins that do not use environment variables."
-        sudo ln -sf "$HOME" /home/deck
-      fi
-      curl -L https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | sh
-      sudo chcon -R -t bin_t $HOME/homebrew/services/PluginLoader
-    fi
-
-# Ptyxis terminal transparency
-ptyxis-transparency opacity="0.95":
-    #!/usr/bin/bash
-    set -euxo pipefail
-    if [[ -n "$(echo "{{ opacity }}" | grep -v '^[.0-9]*$')" ]]; then
-      printf "Value must be numeric: %s.\n" "{{ opacity }}"
-    elif [[ $(echo "0<{{ opacity }} && 1>={{ opacity }}" | bc -q) -eq 1 ]]; then
-      raw="$(gsettings get org.gnome.Ptyxis profile-uuids)"
-      uuids="$(sed -En 's|[^0-9a-z]*||g; s|([0-9a-z]{32})|\1\n|gp' <<<${raw})"
-      for i in ${uuids}; do
-        location="org.gnome.Ptyxis.Profile:/org/gnome/Ptyxis/Profiles/${i}/"
-        gsettings set "${location}" opacity "{{ opacity }}"; done
-      printf "Ptyxis opacity is now %s.\n" "{{ opacity }}"
-    else
-      printf "Value must be between 0 and 1: %s.\n" "{{ opacity }}"
     fi

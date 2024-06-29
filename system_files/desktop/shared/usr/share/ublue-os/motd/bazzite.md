@@ -1,4 +1,4 @@
-# Welcome to Bazzite 󰊴
+# Welcome to DrelbsOS 󰊴
 󱋩 `%IMAGE_NAME%:%IMAGE_BRANCH%`
 
 |  Command | Description |
