@@ -231,6 +231,7 @@ RUN rpm-ostree install \
         compsize \
         ryzenadj \
         input-remapper \
+        i2c-tools \
         udica \
         joycond \
         python3-icoextract \
