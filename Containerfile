@@ -371,7 +371,6 @@ RUN sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/fedora-cisco-openh264.repo
     systemctl enable ublue-nvctk-cdi.service && \
     semodule --verbose --install /usr/share/selinux/packages/nvidia-container.pp && \
     echo "options nvidia NVreg_TemporaryFilePath=/var/tmp" >> /usr/lib/modprobe.d/nvidia-atomic.conf && \
-    echo "options nvidia NVreg_UsePageAttributeTable=1" >> /usr/lib/modprobe.d/nvidia-atomic.conf && \
     cp /etc/modprobe.d/nvidia-modeset.conf /usr/lib/modprobe.d/nvidia-modeset.conf && \
     sed -i 's@omit_drivers@force_drivers@g' /usr/lib/dracut/dracut.conf.d/99-nvidia.conf && \
     rm -f /usr/share/vulkan/icd.d/nouveau_icd.*.json && \
