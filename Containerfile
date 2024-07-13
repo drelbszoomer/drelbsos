@@ -9,7 +9,7 @@ ARG FEDORA_MAJOR_VERSION="${FEDORA_MAJOR_VERSION:-40}"
 
 FROM ghcr.io/ublue-os/akmods:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION} AS akmods
 FROM ghcr.io/ublue-os/akmods-extra:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION} AS akmods-extra
-FROM ghcr.io/ublue-os/fsync:latest AS fsync
+FROM ghcr.io/ublue-os/fsync-kernel:${FEDORA_MAJOR_VERSION} AS fsync
 
 FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION} AS drelbsos
 
@@ -148,7 +148,7 @@ RUN rpm-ostree cliwrap install-to-root / && \
         echo "Will install ${KERNEL_FLAVOR} kernel" && \
         rpm-ostree override replace \
         --experimental \
-            /tmp/fsync-rpms/kernel-6*.rpm \
+            /tmp/fsync-rpms/kernel-[0-9]*.rpm \
             /tmp/fsync-rpms/kernel-core-*.rpm \
             /tmp/fsync-rpms/kernel-modules-*.rpm \
             /tmp/fsync-rpms/kernel-uki-virt-*.rpm \
