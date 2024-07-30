@@ -214,7 +214,6 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     ostree container commit
 
 # Install Valve's patched Mesa, Pipewire, Bluez, and Xwayland
-# Install patched switcheroo control with proper discrete GPU support
 RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     rpm-ostree override remove \
         mesa-va-drivers-freeworld && \
@@ -321,12 +320,15 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     ostree container commit
 
 # Configure GNOME overrides
-RUN rpm-ostree override replace \
+RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
+    rpm-ostree override replace \
         --experimental \
         --from repo=copr:copr.fedorainfracloud.org:ublue-os:staging \
             mutter \
             mutter-common && \
-        systemctl enable dconf-update.service && \
+    rpm-ostree install \
+            rom-properties-gtk3 && \
+    systemctl enable dconf-update.service && \
     /usr/libexec/containerbuild/cleanup.sh && \
     ostree container commit
 
@@ -403,7 +405,7 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     source /tmp/akmods-rpms/kmods/nvidia-vars && \
     ls /tmp/akmods-rpms/kmods && \
     rpm-ostree install \
-	libnvidia-fbc
+        libnvidia-fbc \
         libva-nvidia-driver \
         nvidia-driver \
         nvidia-driver-cuda \
@@ -424,8 +426,7 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     ostree container commit
 
 # Cleanup & Finalize
-RUN 
-    mkdir -p /var/tmp && chmod 1777 /var/tmp && \
+RUN mkdir -p /var/tmp && chmod 1777 /var/tmp && \
     /usr/libexec/containerbuild/image-info && \
     /usr/libexec/containerbuild/build-initramfs && \
     /usr/libexec/containerbuild/cleanup.sh && \
