@@ -158,6 +158,8 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
         cdemu-client \
         gcdemu \
         openrazer-daemon \
+        egl-utils \
+        ncdu \
         lsb_release && \
     # DVD Audio Extractor
     rpm-ostree install https://www.dvdae.com/dvdae/dvdae-8.6.0-0.x86_64.rpm && \
