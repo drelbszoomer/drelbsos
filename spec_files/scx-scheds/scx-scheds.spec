@@ -1,8 +1,9 @@
-%define commit d4a5a629ffc5d01768f6052b1156c9b0479d0f70
+%define commit 643edb5431e12c74e1dbb598be07204dfe5d9469
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 %global build_timestamp %(date +"%Y%m%d")
 %global rel_build git.%{build_timestamp}.%{shortcommit}%{?dist}
 %define _disable_source_fetch 0
+%global toolchain clang
 
 Name:           scx-scheds
 Version:        1.0.1
@@ -13,7 +14,7 @@ License:        GPL=2.0
 URL:            https://github.com/sched-ext/scx
 Source0:        %{URL}/archive/%{commit}.tar.gz
 
-BuildRequires:  gcc
+BuildRequires:  clang
 BuildRequires:  git
 BuildRequires:  meson >= 1.2
 BuildRequires:  python
