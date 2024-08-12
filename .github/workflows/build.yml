@@ -233,7 +233,7 @@ jobs:
         with:
           rechunk: 'ghcr.io/hhd-dev/rechunk:v0.8.3'
           ref: 'raw-img'
-          prev-ref: ${{ github.event.inputs.fresh-rechunk == 'true' && '' || 'ghcr.io/drelbszoomer/drelbsos:unstable' }}
+          prev-ref: ${{ github.event.inputs.fresh-rechunk == 'true' && '' || 'ghcr.io/drelbszoomer/drelbsos-gnome:stable' }}
           version: '${{ steps.generate-version.outputs.tag }}'
           labels: |
             org.opencontainers.image.created=<timestamp>
