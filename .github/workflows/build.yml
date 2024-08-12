@@ -233,10 +233,9 @@ jobs:
         with:
           rechunk: 'ghcr.io/hhd-dev/rechunk:v0.8.3'
           ref: 'raw-img'
-          prev-ref: ${{ github.event.inputs.fresh-rechunk == 'true' && '' || '$PUSH_IMAGE_REGISTRY:unstable' }}
+          prev-ref: ${{ github.event.inputs.fresh-rechunk == 'true' && '' || 'ghcr.io/drelbszoomer/drelbsos:unstable' }}
           version: '${{ steps.generate-version.outputs.tag }}'
           labels: |
-
             org.opencontainers.image.created=<timestamp>
             org.opencontainers.image.licenses=Apache-2.0
             org.opencontainers.image.revision=${{ github.sha }}
