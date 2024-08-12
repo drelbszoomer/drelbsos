@@ -191,7 +191,7 @@ jobs:
             VERSION="testing-${DRELBSOS_VERSION}-${UPSTREAM_TAG}"
             PRETTY_VERSION="Testing (${DRELBSOS_VERSION}, F${UPSTREAM_TAG})"
           else
-            VERSION="${BAZZITE_VERSION}-${UPSTREAM_TAG}"
+            VERSION="${DRELBSOS_VERSION}-${UPSTREAM_TAG}"
             PRETTY_VERSION="Stable (${DRELBSOS_VERSION}, F${UPSTREAM_TAG})"
           fi
           echo "tag=${VERSION}" >> $GITHUB_OUTPUT
