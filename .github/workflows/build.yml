@@ -229,9 +229,9 @@ jobs:
       # Reprocess raw-img using rechunker which will delete it
       - name: Run Rechunker
         id: rechunk
-        uses: hhd-dev/rechunk@v0.8.3
+        uses: hhd-dev/rechunk@v0.8.6
         with:
-          rechunk: 'ghcr.io/hhd-dev/rechunk:v0.8.3'
+          rechunk: 'ghcr.io/hhd-dev/rechunk:v0.8.6'
           ref: 'raw-img'
           prev-ref: ${{ github.event.inputs.fresh-rechunk == 'true' && '' || 'ghcr.io/drelbszoomer/drelbsos-gnome:stable' }}
           version: '${{ steps.generate-version.outputs.tag }}'
