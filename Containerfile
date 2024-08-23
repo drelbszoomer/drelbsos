@@ -220,7 +220,6 @@ RUN rm -f /etc/profile.d/toolbox.sh && \
     systemctl enable input-remapper.service && \
     systemctl unmask bazzite-flatpak-manager.service && \
     systemctl enable bazzite-flatpak-manager.service && \
-    systemctl enable gamescope-workaround.service && \
     systemctl enable incus-workaround.service && \
     systemctl enable bazzite-hardware-setup.service && \
     systemctl enable dev-hugepages1G.mount && \
