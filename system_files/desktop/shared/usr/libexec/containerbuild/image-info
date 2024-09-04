@@ -3,7 +3,7 @@
 set -oue pipefail
 
 IMAGE_PRETTY_NAME="DrelbsOS"
-IMAGE_LIKE="rhel centos fedora bluefin aurora nobara ultramarine"
+IMAGE_LIKE="fedora"
 HOME_URL="https://github.com/drelbszoomer/drelbsos"
 DOCUMENTATION_URL="https://github.com/drelbszoomer/drelbsos"
 SUPPORT_URL="https://github.com/drelbszoomer/drelbsos"
