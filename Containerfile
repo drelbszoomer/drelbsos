@@ -97,7 +97,7 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
 # Install Valve's patched Mesa, Pipewire, Bluez, and Xwayland
 RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     rpm-ostree override remove \
-        mesa-va-drivers-freeworld && \
+        mesa-va-drivers-freeworld \
         mesa-vdpau-drivers-freeworld && \
     rpm-ostree install \
         mesa-va-drivers-freeworld \
