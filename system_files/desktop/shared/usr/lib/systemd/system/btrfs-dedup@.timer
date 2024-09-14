@@ -2,7 +2,7 @@
 Description=Weekly Btrfs deduplication on %f
 
 [Timer]
-OnCalendar=weekly
+OnCalendar=Sat *-*-1..7 4:00:00
 AccuracySec=1h
 RandomizedDelaySec=2d
 Persistent=true
