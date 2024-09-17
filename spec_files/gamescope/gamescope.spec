@@ -2,7 +2,7 @@
 
 %global _default_patch_fuzz 2
 %global build_timestamp %(date +"%Y%m%d")
-%global gamescope_tag 3.15.4
+%global gamescope_tag 3.15.5
 
 Name:           gamescope
 Version:        100.%{gamescope_tag}
@@ -22,6 +22,8 @@ Patch1:         chimeraos.patch
 # https://hhd.dev/
 Patch2:         disable-steam-touch-click-atom.patch
 Patch3:         v2-0001-always-send-ctrl-1-2-to-steam-s-wayland-session.patch
+# https://github.com/ValveSoftware/gamescope/issues/1369
+Patch4:         revert-299bc34.patch
 
 BuildRequires:  meson >= 0.54.0
 BuildRequires:  ninja-build
@@ -94,7 +96,7 @@ Summary:	libs for %{name}
 %summary
 
 %prep
-git clone --depth 1 --branch %{gamescope_tag}-beta-for-steamos-main %{url}.git
+git clone --depth 1 --branch %{gamescope_tag} %{url}.git
 cd gamescope
 git submodule update --init --recursive
 mkdir -p pkgconfig

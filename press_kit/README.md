@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="convergence_wallpaper.png?raw=true" alt="Bazzite"/>
+</p>
+
 # Press Kit
 
 Thanks for generating content about about Bazzite and Universal Blue! This document will explain how to use the brand and terminology used by the project.
@@ -9,7 +13,7 @@ Thanks for generating content about about Bazzite and Universal Blue! This docum
 The name of the project is `Bazzite`. It is built with [Universal Blue](https://universal-blue.org), which publishes base images that Bazzite uses. These in turn are derived from Fedora’s Atomic Desktop images. Universal Blue is the parent organization of [Bluefin](https://projectbluefin.io), [Bazzite](https://bazzite.gg), [Aurora](https://getaurora.dev), and [uCore](https://github.com/ublue-os/ucore). It also acts as the GitHub organization. 
 
 ## Proper Usage
-- `Bazzite` - used to prefer to the project and/or operating system
+- `Bazzite` - used to refer to the project and/or operating system
 - `Bazzite-Deck` - Image used for handhelds, HTPCs, and other systems that can make use of Steam Gaming Mode
 
 ## Incorrect Usage
