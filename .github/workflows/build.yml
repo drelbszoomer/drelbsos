@@ -62,21 +62,25 @@ jobs:
         base_name: [drelbsos, drelbsos-nvidia]
         base_image_name: [silverblue]
         target_image_flavor: [main]
-        fedora_version: [40]
+        target_nvidia_flavor: [nvidia, nvidia-open]
+        fedora_version: [41]
         include:
-          - fedora_version: 40
+          - fedora_version: 41
             is_latest_version: true
             is_stable_version: true
-            kernel_flavor: fsync # must match a kernel_flavor from akmods repo
-            kernel_version: 6.11.4-201.fsync.fc40.x86_64 # must match a cached version of the above flavor
+            kernel_flavor: bazzite # must match a kernel_flavor from akmods repo
+            kernel_version: 6.11.5-304.bazzite.fc41.x86_64 # must match a cached version of the above flavor
+        exclude:
+          - base_name: bazzite
+            target_nvidia_flavor: nvidia
     steps:
       - name: Define env.IMAGE_FLAVOR
         run: |
           if [[ "${{ matrix.base_name }}" == "drelbsos-nvidia" ]]; then
               if [[ "${{ matrix.target_image_flavor }}" == "main" ]]; then
-                  echo "IMAGE_FLAVOR=nvidia" >> $GITHUB_ENV
+                  echo "IMAGE_FLAVOR=${{ matrix.target_nvidia_flavor }}" >> $GITHUB_ENV
               else
-                  echo "IMAGE_FLAVOR=${{ format('{0}-{1}', matrix.target_image_flavor, 'nvidia') }}" >> $GITHUB_ENV
+                  echo "IMAGE_FLAVOR=${{ format('{0}-{1}', matrix.target_image_flavor, matrix.target_nvidia_flavor) }}" >> $GITHUB_ENV
               fi
           else
               echo "IMAGE_FLAVOR=${{ matrix.target_image_flavor }}" >> $GITHUB_ENV
@@ -116,7 +120,7 @@ jobs:
       - name: Verify akmods-nvidia image
         uses: EyeCantCU/cosign-action/verify@v0.3.0
         with:
-          containers: akmods-nvidia:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}-${{ matrix.kernel_version }}
+          containers: akmods-${{ matrix.target_nvidia_flavor }}:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}-${{ matrix.kernel_version }}
           pubkey: https://raw.githubusercontent.com/ublue-os/akmods/main/cosign.pub
           registry: ${{ env.PULL_IMAGE_REGISTRY }}
 
@@ -140,7 +144,7 @@ jobs:
             # we can retry on that unfortunately common failure case
             sudo podman pull ${{ env.PULL_IMAGE_REGISTRY }}/${{ matrix.base_image_name }}-${{ matrix.base_image_flavor }}:${{ matrix.fedora_version }}
             sudo podman pull ${{ env.PULL_IMAGE_REGISTRY }}/akmods:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}-${{ matrix.kernel_version }}
-            sudo podman pull ${{ env.PULL_IMAGE_REGISTRY }}/akmods-nvidia:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}-${{ matrix.kernel_version }}
+            sudo podman pull ${{ env.PULL_IMAGE_REGISTRY }}/akmods-${{ matrix.target_nvidia_flavor }}:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}-${{ matrix.kernel_version }}
 
             # Add rechunk as well to remove this source of failure
             sudo podman pull ghcr.io/hhd-dev/rechunk:v0.8.3
@@ -170,6 +174,9 @@ jobs:
           # Generate the primary version key that will be stored on os-release,
           # shown on the bootloader, and used for the image tag.
           UPSTREAM_TAG="${{ env.SOURCE_IMAGE_VERSION }}"
+          # Remove .0 suffix from upstream tag so we can add our own and
+          # the wrong one does not end up in the image.
+          UPSTREAM_TAG="${UPSTREAM_TAG%.*}"
           FEDORA_VERSION="${{ matrix.fedora_version }}"
           SHA_SHORT="${GITHUB_SHA::7}"
 
@@ -177,11 +184,11 @@ jobs:
             VERSION="pr-${FEDORA_VERSION}-${{ github.event.pull_request.number }}"
             PRETTY_VERSION="PR (${{ github.event.pull_request.number }}, ${UPSTREAM_TAG})"
           elif [[ ${{ github.ref_name }} == "unstable" ]]; then
-            VERSION="unstable-${SHA_SHORT}"
-            PRETTY_VERSION="Unstable (#${SHA_SHORT}, F${UPSTREAM_TAG})"
+            VERSION="unstable-${UPSTREAM_TAG}"
+            PRETTY_VERSION="Unstable (F${UPSTREAM_TAG}, #${SHA_SHORT})"
           elif [[ ${{ github.ref_name }} == "testing" ]]; then
             VERSION="testing-${UPSTREAM_TAG}"
-            PRETTY_VERSION="Testing (F${UPSTREAM_TAG})"
+            PRETTY_VERSION="Testing (F${UPSTREAM_TAG}, #${SHA_SHORT})"
           else
             VERSION="${UPSTREAM_TAG}"
             PRETTY_VERSION="Stable (F${UPSTREAM_TAG})"
@@ -200,6 +207,7 @@ jobs:
             --target ${{ matrix.base_name }} \
             --build-arg IMAGE_NAME=${{ env.IMAGE_NAME }} \
             --build-arg IMAGE_FLAVOR=${{ env.IMAGE_FLAVOR }} \
+            --build-arg NVIDIA_FLAVOR=${{ matrix.target_nvidia_flavor }} \
             --build-arg IMAGE_VENDOR=${{ github.repository_owner }} \
             --build-arg BASE_IMAGE_NAME=${{ matrix.base_image_name }} \
             --build-arg BASE_IMAGE_FLAVOR=${{ matrix.base_image_flavor }} \
@@ -217,7 +225,7 @@ jobs:
         run: |
           sudo podman image rm ${{ env.PULL_IMAGE_REGISTRY }}/${{ matrix.base_image_name }}-${{ matrix.base_image_flavor }}:${{ matrix.fedora_version }}
           sudo podman image rm ${{ env.PULL_IMAGE_REGISTRY }}/akmods:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}-${{ matrix.kernel_version }}
-          sudo podman image rm ${{ env.PULL_IMAGE_REGISTRY }}/akmods-nvidia:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}-${{ matrix.kernel_version }}
+          sudo podman image rm ${{ env.PULL_IMAGE_REGISTRY }}/akmods-${{ matrix.target_nvidia_flavor }}:${{ matrix.kernel_flavor}}-${{ matrix.fedora_version }}-${{ matrix.kernel_version }}
       
       # Generate the previous image reference used by the Rechunker
       - name: Generate previous reference
@@ -244,6 +252,7 @@ jobs:
           ref: 'raw-img'
           prev-ref: '${{ steps.generate-prev-ref.outputs.ref }}'
           version: '${{ steps.generate-version.outputs.tag }}'
+          skip_compression: 1
           labels: |
             org.opencontainers.image.created=<timestamp>
             org.opencontainers.image.licenses=Apache-2.0
@@ -283,9 +292,6 @@ jobs:
             BUILD_TAGS+=("${FEDORA_VERSION}-unstable")
             BUILD_TAGS+=("unstable-${FEDORA_VERSION}") # flip ver to be last
 
-            # Per upstream ver
-            BUILD_TAGS+=("unstable-${UPSTREAM_TAG}")
-
             if [ -n "$LATEST" ]; then
                 BUILD_TAGS+=("unstable")
             fi
@@ -294,16 +300,12 @@ jobs:
             BUILD_TAGS+=("${FEDORA_VERSION}-testing")
             BUILD_TAGS+=("testing-${FEDORA_VERSION}") # flip ver to be last
 
-            # Per upstream ver
-            BUILD_TAGS+=("testing-${UPSTREAM_TAG}")
-
             if [ -n "$LATEST" ]; then
                 BUILD_TAGS+=("testing")
             fi
           else
             BUILD_TAGS+=("${FEDORA_VERSION}")
-            BUILD_TAGS+=("${UPSTREAM_TAG}")
-            BUILD_TAGS+=("stable-${UPSTREAM_TAG}")
+            BUILD_TAGS+=("stable-${VERSION_TAG}")
 
             # Per fedora version
             BUILD_TAGS+=("${FEDORA_VERSION}-stable")
@@ -392,8 +394,15 @@ jobs:
         run: |
           echo "${{ toJSON(steps.push.outputs) }}"
 
+  generate_release:
+    name: Generate Release
+    needs: [push-ghcr]
+    if: github.event_name != 'pull_request'
+    secrets: inherit
+    uses: ./.github/workflows/generate_release.yml
+
   build_iso:
-    name: build iso
+    name: Build ISO
     needs: [push-ghcr]
     if: github.ref_name == 'testing'
     # Eventually would be nice for building images in PRs

@@ -2,17 +2,17 @@ ARG BASE_IMAGE_NAME="${BASE_IMAGE_NAME:-silverblue}"
 ARG BASE_IMAGE_FLAVOR="${BASE_IMAGE_FLAVOR:-main}"
 ARG IMAGE_FLAVOR="${IMAGE_FLAVOR:-main}"
 ARG NVIDIA_FLAVOR=${NVIDIA_FLAVOR:-nvidia}""
-ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-fsync}"
-ARG KERNEL_VERSION="${KERNEL_VERSION:-6.10.8-201.fsync.fc40.x86_64}"
+ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-bazzite}"
+ARG KERNEL_VERSION="${KERNEL_VERSION:-6.9.12-8.fsync.fc40.x86_64}"
 ARG IMAGE_BRANCH="${IMAGE_BRANCH:-main}"
 ARG SOURCE_IMAGE="${SOURCE_IMAGE:-$BASE_IMAGE_NAME-$BASE_IMAGE_FLAVOR}"
 ARG BASE_IMAGE="ghcr.io/ublue-os/${SOURCE_IMAGE}"
-ARG FEDORA_MAJOR_VERSION="${FEDORA_MAJOR_VERSION:-40}"
+ARG FEDORA_MAJOR_VERSION="${FEDORA_MAJOR_VERSION:-41}"
 ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT}"
 ARG VERSION_TAG="${VERSION_TAG}"
 ARG VERSION_PRETTY="${VERSION_PRETTY}"
 
-FROM ghcr.io/ublue-os/${KERNEL_FLAVOR}-kernel:${FEDORA_MAJOR_VERSION}-${KERNEL_VERSION} AS fsync
+FROM ghcr.io/ublue-os/${KERNEL_FLAVOR}-kernel:${FEDORA_MAJOR_VERSION}-${KERNEL_VERSION} AS kernel
 FROM ghcr.io/ublue-os/akmods:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION}-${KERNEL_VERSION} AS akmods
 FROM ghcr.io/ublue-os/akmods-extra:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION}-${KERNEL_VERSION} AS akmods-extra
 
@@ -21,11 +21,12 @@ FROM ${BASE_IMAGE}:${FEDORA_MAJOR_VERSION} AS drelbsos
 ARG IMAGE_NAME="${IMAGE_NAME:-drelbsos}"
 ARG IMAGE_VENDOR="${IMAGE_VENDOR:-ublue-os}"
 ARG IMAGE_FLAVOR="${IMAGE_FLAVOR:-main}"
-ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-fsync}"
-ARG KERNEL_VERSION="${KERNEL_VERSION:-6.10.8.201.fsync.fc40.x86_64}"
+ARG NVIDIA_FLAVOR="${NVIDIA_FLAVOR:-nvidia}"
+ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-bazzite}"
+ARG KERNEL_VERSION="${KERNEL_VERSION:-6.11.4-301.bazzite.fc41.x86_64}"
 ARG IMAGE_BRANCH="${IMAGE_BRANCH:-main}"
 ARG BASE_IMAGE_NAME="${BASE_IMAGE_NAME:-silverblue}"
-ARG FEDORA_MAJOR_VERSION="${FEDORA_MAJOR_VERSION:-40}"
+ARG FEDORA_MAJOR_VERSION="${FEDORA_MAJOR_VERSION:-41}"
 ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT}"
 ARG VERSION_TAG="${VERSION_TAG}"
 ARG VERSION_PRETTY="${VERSION_PRETTY}"
@@ -53,21 +54,17 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     /usr/libexec/containerbuild/cleanup.sh && \
     ostree container commit
 
-# Install kernel-fsync
+# Install kernel
 RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
-    --mount=type=bind,from=fsync,src=/tmp/rpms,dst=/tmp/fsync-rpms \
+    --mount=type=bind,from=kernel,src=/tmp/rpms,dst=/tmp/kernel-rpms \
     rpm-ostree cliwrap install-to-root / && \
-    if [[ "${KERNEL_FLAVOR}" =~ "fsync" ]]; then \
-        echo "Will install ${KERNEL_FLAVOR} kernel" && \
-        rpm-ostree override replace \
-        --experimental \
-            /tmp/fsync-rpms/kernel-[0-9]*.rpm \
-            /tmp/fsync-rpms/kernel-core-*.rpm \
-            /tmp/fsync-rpms/kernel-modules-*.rpm \
-            /tmp/fsync-rpms/kernel-uki-virt-*.rpm \
-    ; else \
-        echo "will use kernel from ${KERNEL_FLAVOR} images" \
-    ; fi && \
+    echo "Will install ${KERNEL_FLAVOR} kernel" && \
+    rpm-ostree override replace \
+    --experimental \
+        /tmp/kernel-rpms/kernel-[0-9]*.rpm \
+        /tmp/kernel-rpms/kernel-core-*.rpm \
+        /tmp/kernel-rpms/kernel-modules-*.rpm \
+        /tmp/kernel-rpms/kernel-uki-virt-*.rpm && \
     rpm-ostree install \
         scx-scheds && \
     /usr/libexec/containerbuild/cleanup.sh && \
@@ -99,7 +96,7 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     /usr/libexec/containerbuild/cleanup.sh && \
     ostree container commit
 
-# Install Valve's patched Mesa, Pipewire, Bluez, and Xwayland
+# Install codec stuff
 RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     sed -i 's@enabled=0@enabled=1@g' /etc/yum.repos.d/rpmfusion-*.repo && \
     rpm-ostree install \
@@ -133,6 +130,7 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
         compsize \
         ryzenadj \
         input-remapper \
+        tuned-profiles-cpu-partitioning \
         i2c-tools \
         udica \
         python3-icoextract \
@@ -146,8 +144,8 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
         yad \
         f3 \
         pulseaudio-utils \
-        unrar \
         lzip \
+        rar \
         libxcrypt-compat \
         mesa-libGLU \
         vulkan-tools \
@@ -170,6 +168,7 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
         openrazer-daemon \
         egl-utils \
         ncdu \
+        btrfs-assistant \
         lsb_release && \
     # DVD Audio Extractor
     rpm-ostree install https://www.dvdae.com/dvdae/dvdae-8.6.0-0.x86_64.rpm && \
@@ -186,7 +185,6 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
 RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     rpm-ostree install \
             rom-properties-gtk3 && \
-    systemctl enable dconf-update.service && \
     /usr/libexec/containerbuild/cleanup.sh && \
     ostree container commit
 
@@ -235,7 +233,8 @@ RUN rm -f /etc/profile.d/toolbox.sh && \
     /usr/libexec/containerbuild/image-info && \
     /usr/libexec/containerbuild/build-initramfs && \
     /usr/libexec/containerbuild/cleanup.sh && \
-    mkdir -p /var/tmp && chmod 1777 /var/tmp && \
+    mkdir -p /var/tmp && \
+    chmod 1777 /var/tmp && \
     ostree container commit
 
 FROM ghcr.io/ublue-os/akmods-nvidia:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION}-${KERNEL_VERSION} AS nvidia-akmods
@@ -245,12 +244,12 @@ FROM drelbsos AS drelbsos-nvidia
 ARG IMAGE_NAME="${IMAGE_NAME:-drelbsos-nvidia}"
 ARG IMAGE_VENDOR="${IMAGE_VENDOR:-ublue-os}"
 ARG IMAGE_FLAVOR="${IMAGE_FLAVOR:-nvidia}"
-ARG NVIDIA_FLAVOR=${NVIDIA_FLAVOR:-nvidia}""
-ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-fsync}"
-ARG KERNEL_VERSION="${KERNEL_VERSION:-6.10.8-201.fsync.fc40.x86_64}"
+ARG NVIDIA_FLAVOR="${NVIDIA_FLAVOR:-nvidia}"
+ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-bazzite}"
+ARG KERNEL_VERSION="${KERNEL_VERSION:-6.11.4-301.bazzite.fc41.x86_64}"
 ARG IMAGE_BRANCH="${IMAGE_BRANCH:-main}"
 ARG BASE_IMAGE_NAME="${BASE_IMAGE_NAME:-silverblue}"
-ARG FEDORA_MAJOR_VERSION="${FEDORA_MAJOR_VERSION:-40}"
+ARG FEDORA_MAJOR_VERSION="${FEDORA_MAJOR_VERSION:-41}"
 ARG VERSION_TAG="${VERSION_TAG}"
 ARG VERSION_PRETTY="${VERSION_PRETTY}"
 
@@ -259,38 +258,56 @@ ARG VERSION_PRETTY="${VERSION_PRETTY}"
 RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
     --mount=type=bind,from=nvidia-akmods,src=/rpms,dst=/tmp/akmods-rpms \
     sed -i 's@enabled=0@enabled=1@g' /etc/yum.repos.d/negativo17-fedora-multimedia.repo && \
+
+    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/rpmfusion*.repo && \
+    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/fedora-cisco-openh264.repo && \
     rpm-ostree install /tmp/akmods-rpms/ublue-os/ublue-os-nvidia-addons-*.rpm && \
-    sed -i '0,/enabled=0/{s/enabled=0/enabled=1/}' /etc/yum.repos.d/negativo17-fedora-nvidia.repo  && \
     sed -i '0,/enabled=0/{s/enabled=0/enabled=1/}' /etc/yum.repos.d/nvidia-container-toolkit.repo && \
     source /tmp/akmods-rpms/kmods/nvidia-vars && \
-    ls /tmp/akmods-rpms/kmods && \
+
     rpm-ostree install \
-        libnvidia-fbc \
-        libva-nvidia-driver \
-        nvidia-driver \
-        nvidia-driver-cuda \
-        nvidia-modprobe \
-        nvidia-persistenced \
-        nvidia-settings \
-        nvidia-container-toolkit ${VARIANT_PKGS} \
-        /tmp/akmods-rpms/kmods/kmod-nvidia-${KERNEL_VERSION}-${NVIDIA_AKMOD_VERSION}.fc${FEDORA_MAJOR_VERSION}.x86_64.rpm && \
-    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/{negativo17-fedora-nvidia,nvidia-container-toolkit}.repo && \
-    systemctl enable nvidia-persistenced.service && \
-    systemctl enable ublue-nvctk-cdi.service && \
-    semodule --verbose --install /usr/share/selinux/packages/nvidia-container.pp && \
-    echo "options nvidia NVreg_TemporaryFilePath=/var/tmp" >> /usr/lib/modprobe.d/nvidia-atomic.conf && \
-    cp /etc/modprobe.d/nvidia-modeset.conf /usr/lib/modprobe.d/nvidia-modeset.conf && \
-    sed -i 's@omit_drivers@force_drivers@g' /usr/lib/dracut/dracut.conf.d/99-nvidia.conf && \
+      	libnvidia-fbc \
+	libva-nvidia-driver \
+	nvidia-driver \
+	nvidia-driver-cuda \
+	nvidia-modprobe \
+	nvidia-persistenced \
+	nvidia-settings \
+	nvidia-container-toolkit ${VARIANT_PKGS} \
+	/tmp/akmods-rpms/kmods/kmod-nvidia-${KERNEL_VERSION}-${NVIDIA_AKMOD_VERSION}.fc${RELEASE}.rpm && \
+
+   sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/nvidia-container-toolkit.repo && \
+   sed -i "s/^MODULE_VARIANT=.*/MODULE_VARIANT=$KERNEL_MODULE_TYPE/" /etc/nvidia/kernel.conf && \
+   systemctl enable nvidia-persistenced.service && \
+   systemctl enable ublue-nvctk-cdi.service && \
+   semodule --verbose --install /usr/share/selinux/packages/nvidia-container.pp && \
+   echo "options nvidia NVreg_TemporaryFilePath=/var/tmp" >> /usr/lib/modprobe.d/nvidia-atomic.conf && \
+   cp /etc/modprobe.d/nvidia-modeset.conf /usr/lib/modprobe.d/nvidia-modeset.conf && \
+   sed -i 's@omit_drivers@force_drivers@g' /usr/lib/dracut/dracut.conf.d/99-nvidia.conf && \
     rm -f /usr/share/vulkan/icd.d/nouveau_icd.*.json && \
     ln -s libnvidia-ml.so.1 /usr/lib64/libnvidia-ml.so && \
-    /usr/libexec/containerbuild/cleanup.sh && \
     sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/negativo17-fedora-multimedia.repo && \
+    /usr/libexec/containerbuild/cleanup.sh && \
     ostree container commit
 
 # Cleanup & Finalize
 RUN mkdir -p /var/tmp && chmod 1777 /var/tmp && \
+    if grep -q "silverblue" <<< "${BASE_IMAGE_NAME}"; then \
+      mkdir -p "/usr/share/ublue-os/dconfs/nvidia-silverblue/" && \
+      cp "/usr/share/glib-2.0/schemas/zz0-"*"-bazzite-nvidia-silverblue-"*".gschema.override" "/usr/share/ublue-os/dconfs/nvidia-silverblue/" && \
+      dconf-override-converter to-dconf "/usr/share/ublue-os/dconfs/nvidia-silverblue/zz0-"*"-bazzite-nvidia-silverblue-"*".gschema.override" && \
+      rm "/usr/share/ublue-os/dconfs/nvidia-silverblue/zz0-"*"-bazzite-nvidia-silverblue-"*".gschema.override" \
+    ; fi && \
+    mkdir -p /tmp/bazzite-schema-test && \
+    find "/usr/share/glib-2.0/schemas/" -type f ! -name "*.gschema.override" -exec cp {} "/tmp/bazzite-schema-test/" \; && \
+    cp "/usr/share/glib-2.0/schemas/zz0-"*".gschema.override" "/tmp/bazzite-schema-test/" && \
+    echo "Running error test for Bazzite Nvidia gschema override. Aborting if failed." && \
+    glib-compile-schemas --strict /tmp/bazzite-schema-test && \
+    echo "Compiling gschema to include Bazzite Nvidia setting overrides" && \
+    glib-compile-schemas /usr/share/glib-2.0/schemas &>/dev/null && \
+    rm -r /tmp/bazzite-schema-test && \
+    mkdir -p /var/tmp && chmod 1777 /var/tmp && \
     /usr/libexec/containerbuild/image-info && \
     /usr/libexec/containerbuild/build-initramfs && \
     /usr/libexec/containerbuild/cleanup.sh && \
-    mkdir -p /var/tmp && chmod 1777 /var/tmp && \
     ostree container commit
