@@ -170,9 +170,9 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
         btrfs-assistant \
         lsb_release && \
     # DVD Audio Extractor
-    rpm-ostree install https://www.dvdae.com/dvdae/dvdae-8.6.0-0.x86_64.rpm && \
-    setcap cap_dac_override,cap_sys_rawio=ep /usr/bin/dvdae && \
-    setcap cap_dac_override,cap_sys_rawio=ep /usr/bin/dvdae-gui && \
+    # rpm-ostree install https://www.dvdae.com/dvdae/dvdae-8.6.0-0.x86_64.rpm && \
+    # setcap cap_dac_override,cap_sys_rawio=ep /usr/bin/dvdae && \
+    # setcap cap_dac_override,cap_sys_rawio=ep /usr/bin/dvdae-gui && \
     curl -Lo /usr/bin/installcab https://raw.githubusercontent.com/KyleGospo/steam-proton-mf-wmv/master/installcab.py && \
     chmod +x /usr/bin/installcab && \
     curl -Lo /usr/bin/install-mf-wmv https://github.com/KyleGospo/steam-proton-mf-wmv/blob/master/install-mf-wmv.sh && \
