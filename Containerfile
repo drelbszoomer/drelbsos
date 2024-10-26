@@ -291,21 +291,6 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
 
 # Cleanup & Finalize
 RUN mkdir -p /var/tmp && chmod 1777 /var/tmp && \
-    if grep -q "silverblue" <<< "${BASE_IMAGE_NAME}"; then \
-      mkdir -p "/usr/share/ublue-os/dconfs/nvidia-silverblue/" && \
-      cp "/usr/share/glib-2.0/schemas/zz0-"*"-bazzite-nvidia-silverblue-"*".gschema.override" "/usr/share/ublue-os/dconfs/nvidia-silverblue/" && \
-      dconf-override-converter to-dconf "/usr/share/ublue-os/dconfs/nvidia-silverblue/zz0-"*"-bazzite-nvidia-silverblue-"*".gschema.override" && \
-      rm "/usr/share/ublue-os/dconfs/nvidia-silverblue/zz0-"*"-bazzite-nvidia-silverblue-"*".gschema.override" \
-    ; fi && \
-    mkdir -p /tmp/bazzite-schema-test && \
-    find "/usr/share/glib-2.0/schemas/" -type f ! -name "*.gschema.override" -exec cp {} "/tmp/bazzite-schema-test/" \; && \
-    cp "/usr/share/glib-2.0/schemas/zz0-"*".gschema.override" "/tmp/bazzite-schema-test/" && \
-    echo "Running error test for Bazzite Nvidia gschema override. Aborting if failed." && \
-    glib-compile-schemas --strict /tmp/bazzite-schema-test && \
-    echo "Compiling gschema to include Bazzite Nvidia setting overrides" && \
-    glib-compile-schemas /usr/share/glib-2.0/schemas &>/dev/null && \
-    rm -r /tmp/bazzite-schema-test && \
-    mkdir -p /var/tmp && chmod 1777 /var/tmp && \
     /usr/libexec/containerbuild/image-info && \
     /usr/libexec/containerbuild/build-initramfs && \
     /usr/libexec/containerbuild/cleanup.sh && \
