@@ -340,9 +340,11 @@ jobs:
             sudo apt install sbsigntool curl openssl
           fi
           TMP=$(podman create rechunked-img bash)
-          VMLINUZ_PATH=$(podman run rechunked-img find /usr/lib/modules -name '*fc${{ matrix.fedora_version }}*')
-          podman cp $TMP:$VMLINUX_PATH/vmlinuz .
+          podman cp $TMP:/usr/lib/modules/. .
           podman rm $TMP
+          # podman cp $TMP:/usr/lib/modules/*fc${{ matrix.fedora_version }}*/vmlinuz .
+          mv ./*fc${{ matrix.fedora_version }}*/vmlinuz .
+          rm -rf ./*fc${{ matrix.fedora_version }}*
           sbverify --list vmlinuz
           curl --retry 3 -Lo kernel-sign.der https://github.com/ublue-os/kernel-cache/raw/main/certs/public_key.der
           curl --retry 3 -Lo akmods.der https://github.com/ublue-os/kernel-cache/raw/main/certs/public_key_2.der
