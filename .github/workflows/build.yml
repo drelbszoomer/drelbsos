@@ -134,7 +134,7 @@ jobs:
         uses: ublue-os/remove-unwanted-software@v7
 
       - name: Pull main, akmods, rechunk images
-        uses: Wandalen/wretry.action@v3.5.0
+        uses: Wandalen/wretry.action@v3.7.0
         with:
           attempt_limit: 3
           attempt_delay: 15000
@@ -150,7 +150,7 @@ jobs:
 
       - name: Get source versions
         id: labels
-        uses: Wandalen/wretry.action@v3.5.0
+        uses: Wandalen/wretry.action@v3.7.0
         with:
           attempt_limit: 3
           attempt_delay: 15000
@@ -244,7 +244,7 @@ jobs:
       # Reprocess raw-img using rechunker which will delete it
       - name: Run Rechunker
         id: rechunk
-        uses: hhd-dev/rechunk@v0.8.6
+        uses: hhd-dev/rechunk@v1.0.1
         with:
           rechunk: 'ghcr.io/hhd-dev/rechunk:v0.8.6'
           ref: 'raw-img'
@@ -363,7 +363,7 @@ jobs:
 
       # Push the image to GHCR (Image Registry)
       - name: Push To GHCR
-        uses: Wandalen/wretry.action@v3.5.0
+        uses: Wandalen/wretry.action@v3.7.0
         id: push
         if: github.event_name != 'pull_request'
         env:
@@ -379,6 +379,8 @@ jobs:
             registry: ${{ steps.registry_case.outputs.lowercase }}
             username: ${{ env.REGISTRY_USER }}
             password: ${{ env.REGISTRY_PASSWORD }}
+            extra-args: |
+              --compression-format=zstd:chunked
 
       - name: Sign container image
         uses: EyeCantCU/cosign-action/sign@v0.3.0
