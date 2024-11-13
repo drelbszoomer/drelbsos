@@ -133,7 +133,7 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
         python3-icoextract \
         webapp-manager \
         zsh \
-	btop \
+        btop \
         lshw \
         xdotool \
         wmctrl \
@@ -154,8 +154,6 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
         fira-code-fonts \
         nerd-fonts \
         fastfetch \
-        glow \
-        gum \
         vim \
         topgrade \
         ydotool \
@@ -208,7 +206,6 @@ RUN rm -f /etc/profile.d/toolbox.sh && \
     sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/_copr_kylegospo-webapp-manager.repo && \
     sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/_copr_hhd-dev-hhd.repo && \
     sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/_copr_che-nerd-fonts.repo && \
-    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/charm.repo && \
     sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/negativo17-fedora-multimedia.repo && \
     sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/negativo17-fedora-rar.repo && \
     mkdir -p /etc/flatpak/remotes.d && \
