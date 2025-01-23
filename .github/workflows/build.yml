@@ -249,7 +249,7 @@ jobs:
             sudo apt update
             sudo apt install sbsigntool curl openssl
           fi
-          TMP=$(podman create rechunked-img bash)
+          TMP=$(podman create raw-img bash)
           podman cp $TMP:/usr/lib/modules/. .
           podman rm $TMP
           # podman cp $TMP:/usr/lib/modules/*fc${{ matrix.fedora_version }}*/vmlinuz .
