@@ -4,6 +4,10 @@
 setup-virtualization ACTION="":
     #!/usr/bin/bash
     source /usr/lib/ujust/ujust.sh
+    if [[ $(id -u) -eq 0 ]]; then
+      echo "Please do not run this command as root"
+      exit 1
+    fi
     # Check if we are running on a Steam Deck
     if /usr/libexec/hwsupport/valve-hardware; then
       echo "${red}${b}WARNING${n}: Virtualization is not properly supported on Steam Deck by Valve"
@@ -29,8 +33,7 @@ setup-virtualization ACTION="":
       exit 0
     elif [ "$OPTION" == "" ]; then
       echo "${bold}Virtualization Setup${normal}"
-      echo "NOTE: Enabling Virtualization will layer virt-manager and qemu"
-      echo "      this will slow down system updates by a lot."
+      echo "NOTE: Enabling Virtualization will install the virt-manager flatpak and set kernel args"
       OPTION=$(Choose \
         "Enable Virtualization" \
         "Disable Virtualization" \
@@ -42,11 +45,27 @@ setup-virtualization ACTION="":
     fi
     if [[ "${OPTION,,}" =~ (^enable[[:space:]]virtualization|virt-on) ]]; then
         if ! rpm -q virt-manager | grep -P "^virt-manager-" 1>/dev/null; then
-          echo "Installing QEMU and virt-manager..."
-          rpm-ostree install -y virt-manager edk2-ovmf qemu libvirt
+          echo "Installing virt-manager..."
+          flatpak install flathub org.virt_manager.virt-manager
           rpm-ostree kargs \
           --append-if-missing="kvm.ignore_msrs=1" \
           --append-if-missing="kvm.report_ignored_msrs=0"
+          echo "Making sure swtpm will work"
+          if [ ! -d "/var/lib/swtpm-localca" ]; then
+            sudo mkdir /var/lib/swtpm-localca
+          fi
+          sudo chown tss /var/lib/swtpm-localca
+          echo "Giving qemu access to read ISO files from $HOME"
+          sudo setfacl -m u:qemu:rx $HOME
+          if sudo test ! -f "/etc/libvirt/hooks/qemu"; then
+            echo "Adding libvirt qemu hooks"
+            sudo wget 'https://raw.githubusercontent.com/PassthroughPOST/VFIO-Tools/master/libvirt_hooks/qemu' -O /etc/libvirt/hooks/qemu
+            sudo chmod +x /etc/libvirt/hooks/qemu
+            sudo grep -A1 -B1 "# Add" /etc/libvirt/hooks/qemu | sed 's/^# //g'
+            if sudo test ! -d "/etc/libvirt/hooks/qemu/qemu.d"; then
+              sudo mkdir /etc/libvirt/hooks/qemu/qemu.d
+            fi
+          fi
           sudo systemctl enable bazzite-libvirtd-setup.service \
             && echo "libvirtd will be enabled at next reboot"
           echo 'Please reboot to apply changes'
@@ -60,8 +79,8 @@ setup-virtualization ACTION="":
         echo "${red}Disabling${n} bazzite-libvirtd-setup"
         sudo systemctl disable --now bazzite-libvirtd-setup.service 2> /dev/null
       fi
-      echo "Removing QEMU and virt-manager..."
-      rpm-ostree remove -y virt-manager edk2-ovmf qemu libvirt
+      echo "Removing virt-manager..."
+      flatpak uninstall org.virt_manager.virt-manager
       rpm-ostree kargs \
       --delete-if-present="kvm.ignore_msrs=1" \
       --delete-if-present="kvm.report_ignored_msrs=0"
@@ -77,7 +96,6 @@ setup-virtualization ACTION="":
       CPU_VENDOR=$(grep "vendor_id" "/proc/cpuinfo" | uniq | awk -F": " '{ print $2 }')
       VENDOR_KARG="unset"
       if [[ ${VIRT_TEST} == *kvm.report_ignored_msrs* ]]; then
-        echo 'add_drivers+=" vfio vfio_iommu_type1 vfio-pci "' | sudo tee /etc/dracut.conf.d/vfio.conf
         rpm-ostree initramfs --enable
         if [[ ${CPU_VENDOR} == "AuthenticAMD" ]]; then
           VENDOR_KARG="amd_iommu=on"
@@ -91,17 +109,18 @@ setup-virtualization ACTION="":
           rpm-ostree kargs \
             --append-if-missing="${VENDOR_KARG}" \
             --append-if-missing="iommu=pt" \
-            --append-if-missing="rd.driver.pre=vfio_pci" \
+            --append-if-missing="rd.driver.pre=vfio-pci" \
             --append-if-missing="vfio_pci.disable_vga=1"
           echo "VFIO will be enabled on next boot, make sure you enable IOMMU, VT-d or AMD-v in your BIOS!"
           echo "Please understand that since this is such a niche use case, support will be very limited!"
+          echo 'Use the command "ls-iommu -grk" to get iommu information about your GPUs, use the "--help" flag for more options'
           echo ""
           echo "${b}Systems with multiple GPUs${n}"
           echo "Bind your unused/second GPU device ids to the vfio driver by running"
-          echo 'rpm-ostree kargs --append-if-missing="vfio-pci.ids=xxxx:yyyy,xxxx:yyzz"'
+          echo 'rpm-ostree kargs --append-if-missing="vfio_pci.ids=xxxx:yyyy,xxxx:yyzz"'
           echo "You will require a $(Urllink "https://www.amazon.com/s?k=hdmi+displayport+dummy+plug" "Dummy HDMI/DisplayPort plug (Ghost Adapter)") or hook the GPU"
           echo "to a separate monitor input in order to turn the GPU on when starting the VM."
-          echo "NOTE: Your second GPU will not be usable by the host after you bind it to the vfio driver!"
+          echo "NOTE: Your second GPU should be as different as possible from your main GPU and will not be usable by the host after you bind it to the vfio driver!"
           echo ""
           echo "${b}Systems with 1 GPU${n}"
           echo "Once rebooted you can continue setting up whatever scripts and hooks you need"
@@ -127,18 +146,26 @@ setup-virtualization ACTION="":
           echo "$VFIO_IDS"
           VFIO_IDS_KARG="--delete-if-present=\"$VFIO_IDS\""
         fi
-        echo "Removing dracut modules"
+        KVMFR_VAL="$(rpm-ostree kargs | sed -E 's/.+(kvmfr.static_size_mb=.+\s)/\1/' | awk '{ print $1 }' | grep kvmfr.static_size_mb)"
+        KVMFR_KARG=""
+        if [ -n "$KVMFR_VAL" ]; then
+          echo "Found KVMFR static_size_mb in kargs, adding the below line to removal list"
+          echo "$KVMFR_VAL"
+          KVMFR_KARG="--delete-if-present=\"$KVMFR_VAL\""
+        fi
+        echo "Removing deprecated dracut modules"
         sudo rm /etc/dracut.conf.d/vfio.conf
-        rpm-ostree initramfs --enable
+        sudo rm /etc/modprobe.d/kvmfr.conf
         rpm-ostree kargs \
         --delete-if-present="iommu=pt" \
         --delete-if-present="iommu=on" \
         --delete-if-present="amd_iommu=on" \
         --delete-if-present="intel_iommu=on" \
-        --delete-if-present="rd.driver.pre=vfio_pci" \
+        --delete-if-present="rd.driver.pre=vfio-pci" \
         --delete-if-present="vfio_pci.disable_vga=1" \
         --delete-if-present="vfio_pci.disable_vga=0" \
-        $VFIO_IDS_KARG
+        $VFIO_IDS_KARG \
+        $KVMFR_KARG
       fi
     elif [[ "${OPTION,,}" =~ kvmfr ]]; then
       # Check if we are running on a Steam Deck
@@ -159,12 +186,22 @@ setup-virtualization ACTION="":
       fi
       echo ""
       echo "Setting up kvmfr module so it loads next boot"
-      sudo bash -c 'cat << KVMFR_DRACUT > /etc/dracut.conf.d/kvmfr.conf
-    install_items+=" /etc/modprobe.d/kvmfr.conf "
-    KVMFR_DRACUT'
+      if [ -f "/etc/modprobe.d/kvmfr.conf" ]; then
+        echo "Re-creating dummy kvmfr modprobe file"
+        sudo rm /etc/modprobe.d/kvmfr.conf
+      fi
       sudo bash -c "cat << KVMFR_MODPROBE > /etc/modprobe.d/kvmfr.conf
-    options kvmfr static_size_mb=128
+    # This is a dummy file and changing it does nothing
+    # If you want to change the kvmfr static_size_mb
+    # Run "rpm-ostree kargs --replace=kvmfr.static_size_mb=oldvalue=newvalue"
+    # Default value set by us is 128 which is enough for 4k SDR
+    # Find the current value by running "rpm-ostree kargs"
     KVMFR_MODPROBE"
+      rpm-ostree kargs --append-if-missing="kvmfr.static_size_mb=128"
+      if [ -f "/etc/udev/rules.d/99-kvmfr.rules" ]; then
+        echo "Re-creating kvmfr udev rules"
+        sudo rm /etc/udev/rules.d/99-kvmfr.rules
+      fi
       echo "Adding udev rule for /dev/kvmfr0"
       sudo bash -c 'cat << KVMFR_UDEV > /etc/udev/rules.d/99-kvmfr.rules
     SUBSYSTEM=="kvmfr", OWNER="'$USER'", GROUP="qemu", MODE="0660"
@@ -194,6 +231,10 @@ setup-virtualization ACTION="":
       if [ ! -d "$HOME/.config/selinux_te/pp" ]; then
         mkdir -p "$HOME/.config/selinux_te/pp"
       fi
+      if [ -f "$HOME/.config/selinux_te/kvmfr.te" ]; then
+        echo "Re-creating kvmfr selinux type enforcement rules"
+        rm $HOME/.config/selinux_te/kvmfr.te
+      fi
       bash -c "cat << KVMFR_SELINUX > $HOME/.config/selinux_te/kvmfr.te
     module kvmfr 1.0;
 
@@ -205,6 +246,9 @@ setup-virtualization ACTION="":
 
     #============= svirt_t ==============
     allow svirt_t device_t:chr_file { open read write map };
+
+    #============= virtqemud_t ==============
+    allow virtqemud_t device_t:chr_file { read write };
     KVMFR_SELINUX"
       echo "This is the type enforcement we wrote for SELinux and you can find it in $HOME/.config/selinux_te/kvmfr.te"
       echo "#======= start of kvmfr.te ======="
@@ -223,14 +267,11 @@ setup-virtualization ACTION="":
       echo "Most ghost display adapters max out at 4k, hence the default value of 128mb."
       echo ""
       echo "If you need to change it to a different value"
-      echo "you can do that in /etc/modprobe.d/kvmfr.conf"
+      echo "you can do that by running \"rpm-ostree kargs --replace=kvmfr.static_size_mb=128=newvalue\""
+      echo "You can check the current kernel arguments with \"rpm-ostree kargs\""
       echo "$(Urllink "https://looking-glass.io/docs/rc/ivshmem_kvmfr/#libvirt" "Please read official documentation for kvmfr for how to use it")"
-      echo ""
-      echo "Press OK to start the process of regenerating your initramfs, this will take a long time"
-      echo "and there is no good way to track progress for it, if anything is wrong it will error out."
-      echo "${b}NOTE: You can start using kvmfr right now without rebooting, but you will need to regenerate initramfs for it to auto load next boot.${n}"
+      echo "${b}NOTE: You can start using kvmfr right now without rebooting if you already rebooted after enabling VFIO.${n}"
       CONFIRM=$(Choose OK)
-      rpm-ostree initramfs --enable
     elif [[ "${OPTION,,}" =~ group ]]; then
       if ! grep -q "^libvirt" /etc/group; then
         grep '^libvirt' /usr/lib/group | sudo tee -a /etc/group > /dev/null
