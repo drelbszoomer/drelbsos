@@ -102,6 +102,7 @@ RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
         libaacs \
         libbdplus \
         libbluray && \
+        libbluray-utils && \
     sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/rpmfusion-*.repo && \
     /usr/libexec/containerbuild/cleanup.sh && \
     ostree container commit
@@ -211,7 +212,6 @@ RUN rm -f /etc/profile.d/toolbox.sh && \
     mkdir -p /etc/flatpak/remotes.d && \
     curl -Lo /etc/flatpak/remotes.d/flathub.flatpakrepo https://dl.flathub.org/repo/flathub.flatpakrepo && \
     systemctl enable input-remapper.service && \
-    systemctl unmask bazzite-flatpak-manager.service && \
     systemctl enable bazzite-flatpak-manager.service && \
     systemctl enable incus-workaround.service && \
     systemctl enable bazzite-hardware-setup.service && \
