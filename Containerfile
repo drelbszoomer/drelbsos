@@ -299,7 +299,6 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         nvidia-driver-cuda-libs.i686 \
         nvidia-driver-libs.i686 \
         mesa-vulkan-drivers.i686 \
-        vulkan-tools.i686 \
         nvidia-settings \
         nvidia-container-toolkit ${VARIANT_PKGS} \
         /tmp/akmods-rpms/kmods/kmod-nvidia*.fc${RELEASE}.rpm && \
