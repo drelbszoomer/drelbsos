@@ -325,7 +325,7 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         nvidia-container-toolkit ${VARIANT_PKGS} \
         /tmp/akmods-rpms/kmods/kmod-nvidia*.fc${RELEASE}.rpm && \
 
-   sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/negativo17-fedora-nvidia.repo
+   sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/negativo17-fedora-nvidia.repo && \
    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/nvidia-container-toolkit.repo && \
 
    sed -i "s/^MODULE_VARIANT=.*/MODULE_VARIANT=$KERNEL_MODULE_TYPE/" /etc/nvidia/kernel.conf && \
