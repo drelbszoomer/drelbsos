@@ -298,6 +298,7 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         nvidia-driver-cuda \
         nvidia-driver-cuda-libs.i686 \
         nvidia-driver-libs.i686 \
+        mesa-vulkan-drivers.i686 \
         nvidia-modprobe \
         nvidia-persistenced \
         nvidia-settings \
