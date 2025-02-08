@@ -299,24 +299,29 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         nvidia-driver-cuda-libs.i686 \
         nvidia-driver-libs.i686 \
         mesa-vulkan-drivers.i686 \
-        nvidia-modprobe \
-        nvidia-persistenced \
+        vulkan-tools.i686 \
         nvidia-settings \
         nvidia-container-toolkit ${VARIANT_PKGS} \
         /tmp/akmods-rpms/kmods/kmod-nvidia*.fc${RELEASE}.rpm && \
 
+   sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/negativo17-fedora-nvidia.repo
    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/nvidia-container-toolkit.repo && \
+   sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/_copr_ublue-os-staging.repo
+
    sed -i "s/^MODULE_VARIANT=.*/MODULE_VARIANT=$KERNEL_MODULE_TYPE/" /etc/nvidia/kernel.conf && \
-   systemctl enable nvidia-persistenced.service && \
+
    systemctl enable ublue-nvctk-cdi.service && \
    semodule --verbose --install /usr/share/selinux/packages/nvidia-container.pp && \
-   echo "options nvidia NVreg_TemporaryFilePath=/var/tmp" >> /usr/lib/modprobe.d/nvidia-atomic.conf && \
+
+   # Universal Blue specific Initramfs fixes
    cp /etc/modprobe.d/nvidia-modeset.conf /usr/lib/modprobe.d/nvidia-modeset.conf && \
    sed -i 's@omit_drivers@force_drivers@g' /usr/lib/dracut/dracut.conf.d/99-nvidia.conf && \
-    rm -f /usr/share/vulkan/icd.d/nouveau_icd.*.json && \
-    ln -s libnvidia-ml.so.1 /usr/lib64/libnvidia-ml.so && \
-    dnf5 -y copr disable ublue-os/staging && \
-    /ctx/cleanup
+   sed -i 's@ nvidia @ i915 amdgpu nvidia @g' /usr/lib/dracut/dracut.conf.d/99-nvidia.conf
+
+   rm -f /usr/share/vulkan/icd.d/nouveau_icd.*.json && \
+   ln -s libnvidia-ml.so.1 /usr/lib64/libnvidia-ml.so && \
+   dnf5 -y copr disable ublue-os/staging && \
+   /ctx/cleanup
 
 # Cleanup & Finalize
 RUN --mount=type=cache,dst=/var/cache/libdnf5 \
