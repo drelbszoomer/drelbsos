@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-set -oue pipefail
+set -eoux pipefail
 
 IMAGE_PRETTY_NAME="DrelbsOS"
 IMAGE_LIKE="fedora"

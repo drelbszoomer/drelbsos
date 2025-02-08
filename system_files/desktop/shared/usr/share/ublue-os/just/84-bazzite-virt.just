@@ -30,6 +30,8 @@ setup-virtualization ACTION="":
       echo "  Use 'vfio-on' to select Enable VFIO drivers"
       echo "  Use 'vfio-off' to select Disable VFIO drivers"
       echo "  Use 'kvmfr' to select Autocreate Looking-Glass shm"
+      echo "  Use 'usbhp-on' to select Enable SPICE USB hot plugging"
+      echo "  Use 'usbhp-off' to select Disable SPICE USB hot plugging"
       exit 0
     elif [ "$OPTION" == "" ]; then
       echo "${bold}Virtualization Setup${normal}"
@@ -41,6 +43,8 @@ setup-virtualization ACTION="":
         "Enable VFIO drivers" \
         "Disable VFIO drivers" \
         "Enable kvmfr module" \
+        "Enable USB hot plugging" \
+        "Disable USB hot plugging" \
       )
     fi
     if [[ "${OPTION,,}" =~ (^enable[[:space:]]virtualization|virt-on) ]]; then
@@ -62,8 +66,8 @@ setup-virtualization ACTION="":
             sudo wget 'https://raw.githubusercontent.com/PassthroughPOST/VFIO-Tools/master/libvirt_hooks/qemu' -O /etc/libvirt/hooks/qemu
             sudo chmod +x /etc/libvirt/hooks/qemu
             sudo grep -A1 -B1 "# Add" /etc/libvirt/hooks/qemu | sed 's/^# //g'
-            if sudo test ! -d "/etc/libvirt/hooks/qemu/qemu.d"; then
-              sudo mkdir /etc/libvirt/hooks/qemu/qemu.d
+            if sudo test ! -d "/etc/libvirt/hooks/qemu.d"; then
+              sudo mkdir /etc/libvirt/hooks/qemu.d
             fi
           fi
           sudo systemctl enable bazzite-libvirtd-setup.service \
@@ -175,7 +179,7 @@ setup-virtualization ACTION="":
       fi
       echo "$(Urllink "https://looking-glass.io/docs/rc/ivshmem_kvmfr/#libvirt" "This module") along with $(Urllink "https://looking-glass.io" "Looking Glass") is very experimental and not recommended for production use!"
       echo "The ublue team packages the kvmfr module only because it has to be supplied with the system image while using an atomic desktop."
-      echo "If you do plan to use Looking Glass, please $(Urllink "https://universal-blue.discourse.group/docs?topic=956" "follow the guide here") on how to compile it for your system."
+      echo "If you do plan to use Looking Glass, please $(Urllink "https://docs.bazzite.gg/Advanced/looking-glass/" "follow the guide here") on how to compile it for your system."
       echo "To use the kvmfr module after enabling it, just add and edit the xml for libvirt from the documentation in the first link."
       echo "Since we package the kvmfr module please open kvmfr related issues you have on Bazzite"
       echo "in the $(Urllink "https://discord.bazzite.gg/" "Bazzite Discord") or the $(Urllink "https://github.com/ublue-os/bazzite/issues" "Bazzite Github issue tracker")."
@@ -272,6 +276,13 @@ setup-virtualization ACTION="":
       echo "$(Urllink "https://looking-glass.io/docs/rc/ivshmem_kvmfr/#libvirt" "Please read official documentation for kvmfr for how to use it")"
       echo "${b}NOTE: You can start using kvmfr right now without rebooting if you already rebooted after enabling VFIO.${n}"
       CONFIRM=$(Choose OK)
+    elif [[ "${OPTION,,}" =~ (^enable[[:space:]]usb|usbhp-on) ]]; then
+      echo "Adding udev rule for USB devices"
+      sudo bash -c 'cat << USBHP_UDEV > /etc/udev/rules.d/72-usbhp.rules
+    ACTION=="add" SUBSYSTEM=="usb", TAG+="uaccess"
+    USBHP_UDEV'
+    elif [[ "${OPTION,,}" =~ (^disable[[:space:]]usb|usbhp-off) ]]; then
+      sudo bash -c 'rm /etc/udev/rules.d/72-usbhp.rules'
     elif [[ "${OPTION,,}" =~ group ]]; then
       if ! grep -q "^libvirt" /etc/group; then
         grep '^libvirt' /usr/lib/group | sudo tee -a /etc/group > /dev/null
