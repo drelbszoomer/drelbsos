@@ -193,13 +193,13 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     --mount=type=tmpfs,dst=/tmp \
     dnf5 -y install \
  	    nautilus-gsconnect \
-            gnome-randr-rust \
-            gnome-shell-extension-appindicator \
-            gnome-shell-extension-user-theme \
-            gnome-shell-extension-gsconnect \
-            gnome-shell-extension-bazzite-menu \
-            firewall-config && \
-            rom-properties-gtk3 && \
+        gnome-randr-rust \
+        gnome-shell-extension-appindicator \
+        gnome-shell-extension-user-theme \
+        gnome-shell-extension-gsconnect \
+        gnome-shell-extension-bazzite-menu \
+        firewall-config \
+        rom-properties-gtk3 && \
     /ctx/cleanup
 
 # Cleanup & Finalize
