@@ -90,32 +90,6 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     done && unset -v toswap && \
     /ctx/cleanup
 
-# Add ublue packages
-RUN --mount=type=cache,dst=/var/cache/rpm-ostree \
-    --mount=type=bind,from=akmods,src=/rpms,dst=/tmp/akmods-rpms \
-    --mount=type=bind,from=akmods-extra,src=/rpms,dst=/tmp/akmods-extra-rpms \
-    sed -i 's@enabled=0@enabled=1@g' /etc/yum.repos.d/_copr_ublue-os-akmods.repo && \
-    rpm-ostree install \
-        /tmp/akmods-rpms/kmods/*xone*.rpm \
-        /tmp/akmods-rpms/kmods/*openrazer*.rpm \
-        /tmp/akmods-rpms/kmods/*v4l2loopback*.rpm \
-        /tmp/akmods-rpms/kmods/*wl*.rpm \
-        /tmp/akmods-extra-rpms/kmods/*gcadapter_oc*.rpm \
-        /tmp/akmods-extra-rpms/kmods/*nct6687*.rpm \
-        /tmp/akmods-extra-rpms/kmods/*zenergy*.rpm \
-        /tmp/akmods-extra-rpms/kmods/*vhba*.rpm \
-        /tmp/akmods-extra-rpms/kmods/*ryzen-smu*.rpm && \
-    rpm-ostree override replace \
-        --experimental \
-        --from repo=copr:copr.fedorainfracloud.org:ublue-os:staging \
-            fwupd \
-            fwupd-plugin-flashrom \
-            fwupd-plugin-modem-manager \
-            fwupd-plugin-uefi-capsule-data && \
-    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/rpmfusion-*.repo && \
-    /usr/libexec/containerbuild/cleanup.sh && \
-    ostree container commit
-
 # Install codec stuff
 # Install patched fwupd
 # Install Valve's patched Mesa, Pipewire, Bluez, and Xwayland
