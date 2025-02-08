@@ -280,6 +280,7 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=bind,from=nvidia-akmods,src=/rpms,dst=/tmp/akmods-rpms \
     --mount=type=tmpfs,dst=/tmp \
+    dnf5 -y copr enable ublue-os/staging && \
     sed -i 's@enabled=0@enabled=1@g' /etc/yum.repos.d/negativo17-fedora-multimedia.repo && \
 
     sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/rpmfusion*.repo && \
@@ -291,15 +292,18 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     source /tmp/akmods-rpms/kmods/nvidia-vars && \
 
     dnf5 install -y \
-    libnvidia-fbc \
-	libva-nvidia-driver \
-	nvidia-driver \
-	nvidia-driver-cuda \
-	nvidia-modprobe \
-	nvidia-persistenced \
-	nvidia-settings \
-	nvidia-container-toolkit ${VARIANT_PKGS} \
-    /tmp/akmods-rpms/kmods/kmod-nvidia*.fc${RELEASE}.rpm && \
+        libnvidia-fbc \
+        libnvidia-ml.i686 \
+        libva-nvidia-driver \
+        nvidia-driver \
+        nvidia-driver-cuda \
+        nvidia-driver-cuda-libs.i686 \
+        nvidia-driver-libs.i686 \
+        nvidia-modprobe \
+        nvidia-persistenced \
+        nvidia-settings \
+        nvidia-container-toolkit ${VARIANT_PKGS} \
+        /tmp/akmods-rpms/kmods/kmod-nvidia*.fc${RELEASE}.rpm && \
 
    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/nvidia-container-toolkit.repo && \
    sed -i "s/^MODULE_VARIANT=.*/MODULE_VARIANT=$KERNEL_MODULE_TYPE/" /etc/nvidia/kernel.conf && \
