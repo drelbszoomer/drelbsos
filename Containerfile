@@ -49,6 +49,7 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         kylegospo/webapp-manager \
         hhd-dev/hhd \
         che/nerd-fonts \
+        hikariknight/looking-glass-kvmfr \
         rok/cdemu \
         rodoma92/rmlint \
         ilyaz/LACT; \
