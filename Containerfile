@@ -287,11 +287,11 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     dnf5 install -y /tmp/akmods-rpms/ublue-os/ublue-os-nvidia-addons-*.rpm && \
     sed -i '0,/enabled=0/{s/enabled=0/enabled=1/}' /etc/yum.repos.d/negativo17-fedora-nvidia.repo && \
     sed -i '0,/enabled=0/{s/enabled=0/enabled=1/}' /etc/yum.repos.d/nvidia-container-toolkit.repo && \
-    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/negativo17-fedora-multimedia.repo
+    sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/negativo17-fedora-multimedia.repo && \
     source /tmp/akmods-rpms/kmods/nvidia-vars && \
 
     dnf5 install -y \
-      	libnvidia-fbc \
+    libnvidia-fbc \
 	libva-nvidia-driver \
 	nvidia-driver \
 	nvidia-driver-cuda \
