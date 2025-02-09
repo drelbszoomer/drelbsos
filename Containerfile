@@ -298,6 +298,8 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         nvidia-driver-cuda \
         nvidia-driver-cuda-libs.i686 \
         nvidia-driver-libs.i686 \
+        # TODO needed for x86
+        vulkan-loader.i686 \
         nvidia-settings \
         nvidia-container-toolkit ${VARIANT_PKGS} \
         /tmp/akmods-rpms/kmods/kmod-nvidia*.fc${RELEASE}.rpm && \
