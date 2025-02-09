@@ -172,28 +172,6 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         qemu \
         libvirt \
         lsb_release \
-# # gamescope bs
-#         gamescope.x86_64 \
-#         gamescope-libs.x86_64 \
-#         gamescope-libs.i686 \
-#         gamescope-shaders \
-#         jupiter-sd-mounting-btrfs \
-#         umu-launcher \
-#         dbus-x11 \
-#         xdg-user-dirs \
-#         gobject-introspection \
-#         libFAudio.x86_64 \
-#         libFAudio.i686 \
-#         latencyflex-vulkan-layer \
-#         vkBasalt.x86_64 \
-#         vkBasalt.i686 \
-#         mangohud.x86_64 \
-#         mangohud.i686 \
-#         libobs_vkcapture.x86_64 \
-#         libobs_glcapture.x86_64 \
-#         libobs_vkcapture.i686 \
-#         libobs_glcapture.i686 \
-# # end gamescope bs
         wlr-randr && \
     mkdir -p /etc/xdg/autostart && \
     sed -i 's/ --xdg-runtime=\\"${XDG_RUNTIME_DIR}\\"//g' /usr/bin/btrfs-assistant-launcher && \
@@ -320,7 +298,6 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         nvidia-driver-cuda \
         nvidia-driver-cuda-libs.i686 \
         nvidia-driver-libs.i686 \
-        mesa-vulkan-drivers.i686 \
         nvidia-settings \
         nvidia-container-toolkit ${VARIANT_PKGS} \
         /tmp/akmods-rpms/kmods/kmod-nvidia*.fc${RELEASE}.rpm && \
