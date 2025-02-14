@@ -11,7 +11,6 @@ ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT}"
 ARG VERSION_TAG="${VERSION_TAG}"
 ARG VERSION_PRETTY="${VERSION_PRETTY}"
 
-FROM ghcr.io/ublue-os/${KERNEL_FLAVOR}-kernel:${FEDORA_MAJOR_VERSION} AS kernel
 FROM ghcr.io/ublue-os/akmods:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION} AS akmods
 FROM ghcr.io/ublue-os/akmods-extra:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION} AS akmods-extra
 
@@ -296,7 +295,6 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         libva-nvidia-driver \
         nvidia-driver \
         nvidia-driver-cuda \
-        nvidia-driver-cuda-libs.i686 \
         nvidia-driver-libs.i686 \
         # TODO needed for x86
         vulkan-loader.i686 \
