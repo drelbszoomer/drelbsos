@@ -6,12 +6,11 @@ from typing import Any
 import re
 from collections import defaultdict
 
-REGISTRY = "docker://ghcr.io/ublue-os/"
-
+REGISTRY = "docker://ghcr.io/drelbszoomer/"
 IMAGE_MATRIX = {
-    "base": ["desktop", "deck", "nvidia-closed", "nvidia-open"],
-    "de": ["kde", "gnome"],
-    "image_flavor": ["main", "asus", "surface"],
+    "base": ["nvidia", "nvidia-open"],
+    "de": ["gnome"],
+    "image_flavor": ["main"],
 }
 
 RETRIES = 3
@@ -27,13 +26,8 @@ PATTERN_PKGREL_CHANGED = "{prev} ➡️ {new}"
 PATTERN_PKGREL = "{version}"
 COMMON_PAT = "### All Images\n| | Name | Previous | New |\n| --- | --- | --- | --- |{changes}\n\n"
 OTHER_NAMES = {
-    "desktop": "### Desktop Images\n| | Name | Previous | New |\n| --- | --- | --- | --- |{changes}\n\n",
-    "deck": "### Deck Images\n| | Name | Previous | New |\n| --- | --- | --- | --- |{changes}\n\n",
-    "kde": "### KDE Images\n| | Name | Previous | New |\n| --- | --- | --- | --- |{changes}\n\n",
     "gnome": "### Gnome Images\n| | Name | Previous | New |\n| --- | --- | --- | --- |{changes}\n\n",
     "nvidia": "### Nvidia Images\n| | Name | Previous | New |\n| --- | --- | --- | --- |{changes}\n\n",
-    "asus": "### Asus Images\n| | Name | Previous | New |\n| --- | --- | --- | --- |{changes}\n\n",
-    "surface": "### Surface Images\n| | Name | Previous | New |\n| --- | --- | --- | --- |{changes}\n\n",
 }
 
 COMMITS_FORMAT = "### Commits\n| Hash | Subject |\n| --- | --- |{commits}\n\n"
@@ -49,22 +43,15 @@ From previous `{target}` version `{prev}` there have been the following changes.
 | Name | Version |
 | --- | --- |
 | **Kernel** | {pkgrel:kernel} |
-| **Firmware** | {pkgrel:atheros-firmware} |
-| **Mesa** | {pkgrel:mesa-filesystem} |
-| **Gamescope** | {pkgrel:gamescope} |
 | **Gnome** | {pkgrel:gnome-control-center-filesystem} |
-| **KDE** | {pkgrel:plasma-desktop} |
-| **[HHD](https://github.com/hhd-dev/hhd)** | {pkgrel:hhd} |
+| **NVIDIA drivers** | {pkgrel:nvidia-driver} |
 
 {changes}
 
 ### How to rebase
 For current users, type the following to rebase to this version:
 ```bash
-# For this branch (if latest):
-bazzite-rollback-helper rebase {target}
-# For this specific image:
-bazzite-rollback-helper rebase {curr}
+sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/drelbszoomer/drelbsos-gnome-{nvidia|nvidia-open}
 ```
 """
 HANDWRITTEN_PLACEHOLDER = """\
@@ -82,20 +69,11 @@ BLACKLIST_VERSIONS = [
 
 def get_images():
     for base, de, image_flavor in product(*IMAGE_MATRIX.values()):
-        img = "bazzite"
-        if base == "deck":
-            if image_flavor == "asus":
-                img += "-ally"
-            else:
-                img += "-deck"
-
+        img = "drelbsos"
         if de == "gnome":
             img += "-gnome"
 
-        if base != "deck" and image_flavor == "asus":
-            img += "-asus"
-
-        if base == "nvidia-closed":
+        if base == "nvidia":
             img += "-nvidia"
         elif base == "nvidia-open":
             img += "-nvidia-open"
@@ -203,19 +181,9 @@ def get_package_groups(prev: dict[str, Any], manifests: dict[str, Any]):
             if img not in pkg:
                 continue
 
-            if t == "asus" and image_flavor != "asus":
-                continue
-            if t == "surface" and image_flavor != "surface":
-                continue
             if t == "nvidia" and "nvidia" not in base:
                 continue
-            if t == "kde" and de != "kde":
-                continue
             if t == "gnome" and de != "gnome":
-                continue
-            if t == "deck" and base != "deck":
-                continue
-            if t == "desktop" and base == "deck":
                 continue
 
             if first:
