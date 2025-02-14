@@ -31,7 +31,7 @@ ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT}"
 ARG VERSION_TAG="${VERSION_TAG}"
 ARG VERSION_PRETTY="${VERSION_PRETTY}"
 
-COPY system_files/desktop/shared system_files/desktop/${BASE_IMAGE_NAME} /
+COPY system_files/desktop/shared /
 
 # Setup Copr repos (new)
 RUN --mount=type=cache,dst=/var/cache/libdnf5 \
