@@ -31,8 +31,6 @@ ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT}"
 ARG VERSION_TAG="${VERSION_TAG}"
 ARG VERSION_PRETTY="${VERSION_PRETTY}"
 
-COPY system_files/desktop/shared system_files/desktop/${BASE_IMAGE_NAME} /
-
 # Setup Copr repos (new)
 RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     --mount=type=cache,dst=/var/cache/rpm-ostree \
