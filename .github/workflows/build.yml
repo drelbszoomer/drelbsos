@@ -70,7 +70,7 @@ jobs:
             is_stable_version: true
             kernel_flavor: bazzite # must match a kernel_flavor from akmods repo
         exclude:
-          - base_name: bazzite
+          - base_name: drelbsos
             target_nvidia_flavor: nvidia
     steps:
       - name: Define env.IMAGE_FLAVOR

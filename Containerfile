@@ -111,6 +111,7 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     --mount=type=tmpfs,dst=/tmp \
     dnf5 -y remove \
         ublue-os-update-services \
+        opensc \ # needed to prevent Yubikey conflicts
         firefox \
         firefox-langpacks && \
     /ctx/cleanup
@@ -169,6 +170,7 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
         podman-compose \
         edk2-ovmf \
         qemu \
+        unetbootin \
         libvirt \
         lsb_release \
         wlr-randr && \
@@ -255,7 +257,7 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     /ctx/build-initramfs && \
     /ctx/finalize
 
-FROM ghcr.io/ublue-os/akmods-nvidia:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION} AS nvidia-akmods
+FROM ghcr.io/ublue-os/akmods-${NVIDIA_FLAVOR}:${KERNEL_FLAVOR}-${FEDORA_MAJOR_VERSION} AS nvidia-akmods
 
 FROM drelbsos AS drelbsos-nvidia
 
