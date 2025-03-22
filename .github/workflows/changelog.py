@@ -44,6 +44,7 @@ From previous `{target}` version `{prev}` there have been the following changes.
 | --- | --- |
 | **Kernel** | {pkgrel:kernel} |
 | **Gnome** | {pkgrel:gnome-control-center-filesystem} |
+| **Mutter** | {pkgrel:mutter} |
 | **NVIDIA drivers** | {pkgrel:nvidia-driver} |
 
 {changes}
