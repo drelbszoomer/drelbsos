@@ -72,6 +72,8 @@ jobs:
         exclude:
           - base_name: drelbsos
             target_nvidia_flavor: nvidia
+          - base_name: drelbsos
+            target_nvidia_flavor: nvidia-open
     steps:
       - name: Define env.IMAGE_FLAVOR
         run: |
