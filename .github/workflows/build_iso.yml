@@ -22,8 +22,8 @@ jobs:
       fail-fast: false
       matrix:
         image_name:
-          - drelbsos-nvidia
-          - drelbsos-nvidia-open
+          - drelbsos-gnome-nvidia
+          - drelbsos-gnome-nvidia-open
         major_version: [41]
     steps:
 
