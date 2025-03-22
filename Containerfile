@@ -111,7 +111,7 @@ RUN --mount=type=cache,dst=/var/cache/libdnf5 \
     --mount=type=tmpfs,dst=/tmp \
     dnf5 -y remove \
         ublue-os-update-services \
-        opensc \ # needed to prevent Yubikey conflicts
+        opensc \
         firefox \
         firefox-langpacks && \
     /ctx/cleanup
